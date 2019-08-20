@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
+
 from odoo import models, fields, api, _
 from odoo.exceptions import ValidationError
-from odoo.tools import DEFAULT_SERVER_DATE_FORMAT, \
-    DEFAULT_SERVER_DATETIME_FORMAT
+from odoo.tools import DEFAULT_SERVER_DATE_FORMAT, DEFAULT_SERVER_DATETIME_FORMAT
+
 import pytz
+
 from datetime import datetime
 
 
@@ -12,13 +14,28 @@ class FullAttendanceDay(models.Model):
     _description = "Attendance by Day"
     _order = "day desc"
 
-    _sql_constraints = [
-        (
-            'employee_day_unique',
-            'unique(employee_id, day)',
-            'Day be unique for employee'
-        ),
-    ]
+   
+    employee_id = fields.Many2one(
+        'hr.employee',
+        string="Employee",
+        required=True,
+        ondelete='cascade',
+        index=True,
+        readonly=True
+    )
+
+    attendance_ids = fields.One2many(
+        string=u'Attendance',
+        comodel_name='hr.attendance',
+        inverse_name='attendance_day_id',
+    )
+
+    attendance_id = fields.Many2one(
+        'hr.attendance',
+        string="Creating attendance",
+        required=True,
+        readonly=True
+    )
 
     @api.multi
     def name_get(self):
@@ -34,12 +51,11 @@ class FullAttendanceDay(models.Model):
                 ),
             }))
         return result
-
+    
     @api.depends('attendance_ids.check_in',
                  'attendance_ids.check_out',
                  'attendance_id.check_in')
     def _compute_day(self):
-
         # detect timezone
         if self.env.user.tz:
             local = pytz.timezone(self.env.user.tz)
@@ -93,6 +109,26 @@ class FullAttendanceDay(models.Model):
             r.worked_hours = tot_worked
             r.break_hours = tot_break
 
+    @api.multi
+    def unlink(self):
+        """
+            Delete all record(s) from recordset
+            return True on success, False otherwise
+
+            @return: True on success, False otherwise
+
+            #TODO: process before delete resource
+        """
+
+        related_attendances = self.env['hr.attendance'].search([
+            ('attendance_day_id', 'in', self.ids)
+        ])
+
+        result = super(FullAttendanceDay, self).unlink()
+
+        related_attendances.unlink()
+
+        return result
     # Fields
 
     day = fields.Date(
@@ -131,46 +167,3 @@ class FullAttendanceDay(models.Model):
         store=True,
         readonly=True
     )
-
-    employee_id = fields.Many2one(
-        'hr.employee',
-        string="Employee",
-        required=True,
-        ondelete='cascade',
-        index=True,
-        readonly=True
-    )
-
-    attendance_ids = fields.One2many(
-        string=u'Attendance',
-        comodel_name='hr.attendance',
-        inverse_name='attendance_day_id',
-    )
-
-    attendance_id = fields.Many2one(
-        'hr.attendance',
-        string="Creating attendance",
-        required=True,
-        readonly=True
-    )
-
-    @api.multi
-    def unlink(self):
-        """
-            Delete all record(s) from recordset
-            return True on success, False otherwise
-
-            @return: True on success, False otherwise
-
-            #TODO: process before delete resource
-        """
-
-        related_attendances = self.env['hr.attendance'].search([
-            ('attendance_day_id', 'in', self.ids)
-        ])
-
-        result = super(FullAttendanceDay, self).unlink()
-
-        related_attendances.unlink()
-
-        return result
