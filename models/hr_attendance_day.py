@@ -42,13 +42,8 @@ class FullAttendanceDay(models.Model):
         result = []
         for attendance in self:
             result.append((attendance.id, _("%(empl_name)s for %(day)s") % {
-                'empl_name': attendance.employee_id.name_related,
-                'day': fields.Date.to_string(
-                    datetime.strptime(
-                        attendance.day,
-                        DEFAULT_SERVER_DATE_FORMAT
-                    )
-                ),
+                'empl_name': attendance.employee_id.name,
+                'day': fields.Date.to_string(attendance.day),
             }))
         return result
     
@@ -82,22 +77,13 @@ class FullAttendanceDay(models.Model):
             first_a = attendances[0]
             check_in = first_a.check_in
             day = datetime.strftime(
-                pytz.utc.localize(
-                    datetime.strptime(
-                        check_in,
-                        DEFAULT_SERVER_DATETIME_FORMAT
-                    )
-                ).astimezone(local), DEFAULT_SERVER_DATE_FORMAT)
+                pytz.utc.localize(check_in).astimezone(local), DEFAULT_SERVER_DATE_FORMAT)
 
             prev = False
             for a in attendances:
 
                 if prev:
-                    delta = datetime.strptime(
-                            a.check_in, DEFAULT_SERVER_DATETIME_FORMAT
-                        ) - datetime.strptime(
-                            prev.check_out, DEFAULT_SERVER_DATETIME_FORMAT
-                        )
+                    delta = a.check_in  - prev.check_out
                     tot_break += delta.total_seconds() / 3600.0
                 tot_worked += a.worked_hours
                 check_out = a.check_out

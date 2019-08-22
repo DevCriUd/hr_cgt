@@ -1,6 +1,6 @@
 	# -*- coding: utf-8 -*-
 {
-    'name': 'Employee Full',
+    'name': 'Sotras Employee Full',
     'description': """
         Jobs, Departments and Employees Details from OCA and custom.
         Original module from Cogito
@@ -11,7 +11,7 @@
 
     'license': 'OPL-1',
     'category': 'Human Resources',
-    'version': '0.1',
+    'version': '0.2',
 
     'depends': [
         'hr', 'hr_contract', 'hr_holidays',
